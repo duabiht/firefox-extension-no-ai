@@ -1,3 +1,12 @@
+// Custom logging function for the no-ai extension
+const noAILog = {
+  info: (...args) => console.log('%c[no-ai]', 'color: #4CAF50; font-weight: bold;', ...args),
+  debug: (...args) => console.log('%c[no-ai DEBUG]', 'color: #2196F3; font-weight: bold;', ...args),
+  warn: (...args) => console.warn('%c[no-ai WARN]', 'color: #FF9800; font-weight: bold;', ...args),
+  error: (...args) => console.error('%c[no-ai ERROR]', 'color: #F44336; font-weight: bold;', ...args),
+  success: (...args) => console.log('%c[no-ai SUCCESS]', 'color: #8BC34A; font-weight: bold;', ...args)
+};
+
 // Default AI-related keywords to filter (case-insensitive, except 'AI' which is case-sensitive)
 const aiKeywordsCaseSensitive = ["AI"];
 const aiKeywordsCaseInsensitive = [
@@ -13,7 +22,7 @@ const aiKeywordsCaseInsensitive = [
 ];
 
 function hideAIposts(customKeywords = []) {
-  console.log('[no-ai] Running filter check...');
+  noAILog.info('Running filter check...');
   
   // Try multiple selectors for different Reddit layouts
   const selectors = [
@@ -30,13 +39,13 @@ function hideAIposts(customKeywords = []) {
     const found = document.querySelectorAll(selector);
     if (found.length > 0) {
       posts = Array.from(found);
-      console.log(`[no-ai] Found ${posts.length} posts using selector: ${selector}`);
+      noAILog.debug(`Found ${posts.length} posts using selector: ${selector}`);
       break;
     }
   }
   
   if (posts.length === 0) {
-    console.log('[no-ai] No posts found with any selector');
+    noAILog.warn('No posts found with any selector');
     return;
   }
   
@@ -78,7 +87,7 @@ function hideAIposts(customKeywords = []) {
     const text = title || body ? (title + ' ' + body).trim() : (post.innerText || post.textContent || '');
     
     // Debug: log what is being checked
-    console.log(`[no-ai] Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+    noAILog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
     
     let shouldHide = false;
     let matchedKeyword = '';
@@ -104,11 +113,11 @@ function hideAIposts(customKeywords = []) {
       post.style.display = 'none';
       post.setAttribute('data-no-ai-hidden', 'true');
       hiddenCount++;
-      console.log(`[no-ai] Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
+      noAILog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
     }
   });
   
-  console.log(`[no-ai] Hidden ${hiddenCount} out of ${posts.length} posts`);
+  noAILog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
 }
 
 // Load custom keywords from storage and run filter
@@ -120,17 +129,17 @@ function runWithCustomKeywords() {
   if (window.browser && window.browser.storage) {
     window.browser.storage.local.get(['customKeywords'], (result) => {
       const customKeywords = result.customKeywords || [];
-      console.log('[no-ai] Loaded custom keywords:', customKeywords);
+      noAILog.info('Loaded custom keywords:', customKeywords);
       hideAIposts(customKeywords);
     });
   } else {
-    console.log('[no-ai] Storage API not available, using default keywords only');
+    noAILog.warn('Storage API not available, using default keywords only');
     hideAIposts();
   }
 }
 
 // Initial run
-console.log('[no-ai] Extension loaded');
+noAILog.info('Extension loaded');
 runWithCustomKeywords();
 
 // Watch for new content (Reddit loads posts dynamically)
@@ -160,7 +169,7 @@ const observer = new MutationObserver((mutations) => {
   });
   
   if (shouldRerun) {
-    console.log('[no-ai] New posts detected, re-running filter');
+    noAILog.debug('New posts detected, re-running filter');
     setTimeout(runWithCustomKeywords, 100); // Small delay to ensure DOM is ready
   }
 });
@@ -171,4 +180,4 @@ observer.observe(document.body, {
   subtree: true
 });
 
-console.log('[no-ai] MutationObserver started');
+noAILog.info('MutationObserver started');
