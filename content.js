@@ -84,14 +84,20 @@ function hideAIposts(customKeywords = []) {
   ];
   
   let posts = [];
+  // Collect posts from all selectors to avoid missing any
   for (const selector of selectors) {
     const found = document.querySelectorAll(selector);
     if (found.length > 0) {
-      posts = Array.from(found);
-      noAILog.debug(`Found ${posts.length} posts using selector: ${selector}`);
-      window.noAIStats.postsFound = posts.length;
-      break;
+      posts = posts.concat(Array.from(found));
     }
+  }
+  
+  // Remove duplicates
+  posts = Array.from(new Set(posts));
+  
+  if (posts.length > 0) {
+    noAILog.debug(`Found ${posts.length} posts using multiple selectors`);
+    window.noAIStats.postsFound = posts.length;
   }
   
   if (posts.length === 0) {
@@ -108,19 +114,26 @@ function hideAIposts(customKeywords = []) {
       return;
     }
     
-    // Try to get the title (h3) and body text separately, then combine
+    // Try to get the title and body text with improved extraction
     let title = '';
     let body = '';
     
-    // Extract title from h3 elements
-    const titleElem = post.querySelector('h3');
-    if (titleElem) title = titleElem.innerText || titleElem.textContent || '';
+    // Extract title from multiple possible elements
+    const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="post-title"]', 'a[data-click-id="body"]'];
+    for (const selector of titleSelectors) {
+      const titleElem = post.querySelector(selector);
+      if (titleElem) {
+        title = titleElem.innerText || titleElem.textContent || '';
+        if (title.trim()) break;
+      }
+    }
     
     // Try multiple selectors for post body content
     const bodySelectors = [
       'div[data-click-id="text"]',
       'div[slot="text-body"]',
       'div[data-testid="post-content"]',
+      '.RichTextJSON-root',
       '.md',
       'p',
       'span'
@@ -134,8 +147,11 @@ function hideAIposts(customKeywords = []) {
       }
     }
     
-    // Fallback to full post text if specific elements not found
-    const text = title || body ? (title + ' ' + body).trim() : (post.innerText || post.textContent || '');
+    // Combine title and body, fallback to full post text
+    let text = (title + ' ' + body).trim();
+    if (!text) {
+      text = post.innerText || post.textContent || '';
+    }
     
     // Debug: log what is being checked
     noAILog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
@@ -153,7 +169,7 @@ function hideAIposts(customKeywords = []) {
     if (!shouldHide) {
       const lowerText = text.toLowerCase();
       const foundKeyword = aiKeywordsCaseInsensitive.find(keyword => lowerText.includes(keyword)) ||
-                          customKeywords.find(keyword => lowerText.includes(keyword.toLowerCase()));
+                          (customKeywords && customKeywords.find(keyword => lowerText.includes(keyword.toLowerCase())));
       if (foundKeyword) {
         shouldHide = true;
         matchedKeyword = foundKeyword;
@@ -164,11 +180,11 @@ function hideAIposts(customKeywords = []) {
       post.style.display = 'none';
       post.setAttribute('data-no-ai-hidden', 'true');
       hiddenCount++;
-      window.noAIStats.postsHidden++;
       noAILog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
     }
   });
   
+  window.noAIStats.postsHidden = hiddenCount;
   noAILog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
   sendStatsToDevTools();
 }
