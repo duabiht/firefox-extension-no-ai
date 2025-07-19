@@ -48,7 +48,38 @@ function hideAIposts(customKeywords = []) {
       return;
     }
     
-    const text = post.innerText || post.textContent || '';
+    // Try to get the title (h3) and body text separately, then combine
+    let title = '';
+    let body = '';
+    
+    // Extract title from h3 elements
+    const titleElem = post.querySelector('h3');
+    if (titleElem) title = titleElem.innerText || titleElem.textContent || '';
+    
+    // Try multiple selectors for post body content
+    const bodySelectors = [
+      'div[data-click-id="text"]',
+      'div[slot="text-body"]',
+      'div[data-testid="post-content"]',
+      '.md',
+      'p',
+      'span'
+    ];
+    
+    for (const selector of bodySelectors) {
+      const bodyElem = post.querySelector(selector);
+      if (bodyElem) {
+        body = bodyElem.innerText || bodyElem.textContent || '';
+        if (body.trim()) break; // Use first non-empty result
+      }
+    }
+    
+    // Fallback to full post text if specific elements not found
+    const text = title || body ? (title + ' ' + body).trim() : (post.innerText || post.textContent || '');
+    
+    // Debug: log what is being checked
+    console.log(`[no-ai] Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+    
     let shouldHide = false;
     let matchedKeyword = '';
     
