@@ -18,6 +18,21 @@ Want to block even more topics? Click the extension icon in your browser toolbar
 
 ---
 
+## 🛠️ DevTools Panel (Advanced Debugging)
+
+The extension now includes a custom **No-AI Filter** tab in your browser's DevTools (F12), just like Adblock Plus!
+
+- **Live stats**: See how many posts were found, hidden, and how many times the filter ran.
+- **Live logs**: All extension activity and filtering decisions are shown in real time, with color-coded log levels.
+- **Controls**: Run the filter manually, clear logs, or export logs as a text file.
+
+**How to use:**
+1. Reload the extension in Firefox (about:debugging or via Add-ons page).
+2. Open Reddit and press F12 to open DevTools.
+3. Click the new **No-AI Filter** tab to monitor and debug the extension in real time!
+
+---
+
 ## 🖼️ Icons Included
 
 For a polished look, the extension includes these icons:

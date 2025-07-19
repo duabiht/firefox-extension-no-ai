@@ -1,11 +1,59 @@
 // Custom logging function for the no-ai extension
 const noAILog = {
-  info: (...args) => console.log('%c[no-ai]', 'color: #4CAF50; font-weight: bold;', ...args),
-  debug: (...args) => console.log('%c[no-ai DEBUG]', 'color: #2196F3; font-weight: bold;', ...args),
-  warn: (...args) => console.warn('%c[no-ai WARN]', 'color: #FF9800; font-weight: bold;', ...args),
-  error: (...args) => console.error('%c[no-ai ERROR]', 'color: #F44336; font-weight: bold;', ...args),
-  success: (...args) => console.log('%c[no-ai SUCCESS]', 'color: #8BC34A; font-weight: bold;', ...args)
+  info: (...args) => {
+    console.log('%c[no-ai]', 'color: #4CAF50; font-weight: bold;', ...args);
+    sendToDevTools('info', args.join(' '));
+  },
+  debug: (...args) => {
+    console.log('%c[no-ai DEBUG]', 'color: #2196F3; font-weight: bold;', ...args);
+    sendToDevTools('debug', args.join(' '));
+  },
+  warn: (...args) => {
+    console.warn('%c[no-ai WARN]', 'color: #FF9800; font-weight: bold;', ...args);
+    sendToDevTools('warn', args.join(' '));
+  },
+  error: (...args) => {
+    console.error('%c[no-ai ERROR]', 'color: #F44336; font-weight: bold;', ...args);
+    sendToDevTools('error', args.join(' '));
+  },
+  success: (...args) => {
+    console.log('%c[no-ai SUCCESS]', 'color: #8BC34A; font-weight: bold;', ...args);
+    sendToDevTools('success', args.join(' '));
+  }
 };
+
+// Statistics tracking
+window.noAIStats = {
+  postsFound: 0,
+  postsHidden: 0,
+  filterRuns: 0
+};
+
+// Send logs to DevTools panel
+function sendToDevTools(level, message, data = null) {
+  try {
+    chrome.runtime.sendMessage({
+      type: 'no-ai-log',
+      level: level,
+      message: message,
+      data: data
+    });
+  } catch (e) {
+    // DevTools panel might not be open, ignore errors
+  }
+}
+
+// Send stats to DevTools panel
+function sendStatsToDevTools() {
+  try {
+    chrome.runtime.sendMessage({
+      type: 'no-ai-stats',
+      stats: window.noAIStats
+    });
+  } catch (e) {
+    // DevTools panel might not be open, ignore errors
+  }
+}
 
 // Default AI-related keywords to filter (case-insensitive, except 'AI' which is case-sensitive)
 const aiKeywordsCaseSensitive = ["AI"];
@@ -23,6 +71,7 @@ const aiKeywordsCaseInsensitive = [
 
 function hideAIposts(customKeywords = []) {
   noAILog.info('Running filter check...');
+  window.noAIStats.filterRuns++;
   
   // Try multiple selectors for different Reddit layouts
   const selectors = [
@@ -40,12 +89,14 @@ function hideAIposts(customKeywords = []) {
     if (found.length > 0) {
       posts = Array.from(found);
       noAILog.debug(`Found ${posts.length} posts using selector: ${selector}`);
+      window.noAIStats.postsFound = posts.length;
       break;
     }
   }
   
   if (posts.length === 0) {
     noAILog.warn('No posts found with any selector');
+    sendStatsToDevTools();
     return;
   }
   
@@ -113,11 +164,13 @@ function hideAIposts(customKeywords = []) {
       post.style.display = 'none';
       post.setAttribute('data-no-ai-hidden', 'true');
       hiddenCount++;
+      window.noAIStats.postsHidden++;
       noAILog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
     }
   });
   
   noAILog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
+  sendStatsToDevTools();
 }
 
 // Load custom keywords from storage and run filter
