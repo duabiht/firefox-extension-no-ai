@@ -153,6 +153,13 @@ function hideAIposts(customKeywords = []) {
       text = post.innerText || post.textContent || '';
     }
     
+    // Add extraction from faceplate-screen-reader-content (important for accessibility text)
+    const srElem = post.querySelector('faceplate-screen-reader-content');
+    if (srElem) {
+      text += ' ' + (srElem.innerText || srElem.textContent || '');
+    }
+    text = text.trim();
+    
     // Debug: log what is being checked
     noAILog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
     
