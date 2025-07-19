@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Reddit AI Post Filter",
+  "version": "1.0",
+  "description": "Hides AI-related posts on Reddit.",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://www.reddit.com/*"],
+  "icons": {
+    "48": "icon-48.png",
+    "96": "icon-96.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.reddit.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
