@@ -69,6 +69,23 @@ const aiKeywordsCaseInsensitive = [
   "llm",
 ];
 
+// Helper: Find all elements matching selector, including inside shadow roots
+function findAllInShadow(root, selector) {
+  let results = [];
+  if (root.querySelectorAll) {
+    results = Array.from(root.querySelectorAll(selector));
+  }
+  // Traverse shadow roots
+  const walker = document.createTreeWalker(root, Node.ELEMENT_NODE, null, false);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.shadowRoot) {
+      results = results.concat(findAllInShadow(node.shadowRoot, selector));
+    }
+  }
+  return results;
+}
+
 function hideAIposts(customKeywords = []) {
   noAILog.info('Running filter check...');
   window.noAIStats.filterRuns++;
@@ -152,10 +169,10 @@ function hideAIposts(customKeywords = []) {
     if (!text) {
       text = post.innerText || post.textContent || '';
     }
-    
-    // Add extraction from faceplate-screen-reader-content (important for accessibility text)
-    const srElem = post.querySelector('faceplate-screen-reader-content');
-    if (srElem) {
+
+    // Add extraction from faceplate-screen-reader-content (including shadow DOM)
+    const srElems = findAllInShadow(post, 'faceplate-screen-reader-content');
+    for (const srElem of srElems) {
       text += ' ' + (srElem.innerText || srElem.textContent || '');
     }
     text = text.trim();
