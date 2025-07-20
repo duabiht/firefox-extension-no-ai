@@ -236,38 +236,21 @@ noAILog.info('Extension loaded');
 runWithCustomKeywords();
 
 // Watch for new content (Reddit loads posts dynamically)
+let filterTimeout = null;
 const observer = new MutationObserver((mutations) => {
-  let shouldRerun = false;
+  let added = false;
   mutations.forEach((mutation) => {
     if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-      // Check if any new nodes contain posts
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1) { // Element node
-          const hasPost = node.querySelector && (
-            node.querySelector('[role="article"]') ||
-            node.querySelector('[data-testid="post-container"]') ||
-            node.querySelector('.Post') ||
-            node.matches && (
-              node.matches('[role="article"]') ||
-              node.matches('[data-testid="post-container"]') ||
-              node.matches('.Post')
-            )
-          );
-          if (hasPost) {
-            shouldRerun = true;
-          }
-        }
-      });
+      added = true;
     }
   });
-  
-  if (shouldRerun) {
-    noAILog.debug('New posts detected, re-running filter');
-    setTimeout(runWithCustomKeywords, 100); // Small delay to ensure DOM is ready
+  if (added) {
+    if (filterTimeout) clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(runWithCustomKeywords, 200);
+    noAILog.debug('DOM changed, re-running filter');
   }
 });
 
-// Start observing
 observer.observe(document.body, {
   childList: true,
   subtree: true
