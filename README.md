@@ -12,9 +12,12 @@ Tired of seeing AI-related posts on Reddit? Want a cleaner, more human feed? **n
 
 ---
 
-## 🛠️ Custom Keywords
+## 🛠️ Popup Features
 
-Want to block even more topics? Click the extension icon in your browser toolbar to add or remove your own keywords. Enter a keyword and click **Add**—your custom list is saved locally and used alongside the default filter.
+- **Blocked posts counter**: See how many posts have been hidden, right in the popup.
+- **Default keywords**: Always active, visible in the popup (not editable).
+- **Custom keywords**: Add, edit (gear icon), or delete (red trash) your own keywords directly in the popup.
+- **Live editing**: Click the gear to rename a custom keyword, or the trash to remove it.
 
 ---
 

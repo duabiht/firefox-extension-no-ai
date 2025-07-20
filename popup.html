@@ -4,19 +4,49 @@
   <meta charset="UTF-8">
   <title>no-ai Keywords</title>
   <style>
-    body { font-family: Arial, sans-serif; min-width: 220px; margin: 10px; }
+    body { font-family: Arial, sans-serif; min-width: 240px; margin: 10px; }
     input, button { margin: 4px 0; }
     ul { padding-left: 18px; }
     li { margin-bottom: 2px; }
-    .remove { color: red; cursor: pointer; margin-left: 8px; }
+    .remove { color: red; cursor: pointer; margin-left: 8px; font-weight: bold; }
+    .edit { color: #888; cursor: pointer; margin-left: 8px; font-size: 13px; }
+    .counter { font-size: 15px; color: #2196F3; margin-bottom: 8px; font-weight: bold; }
+    .section-title { margin-top: 10px; margin-bottom: 2px; font-size: 14px; font-weight: bold; }
+    .default-keyword { color: #888; }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.2);
+      align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background: #fff; padding: 16px; border-radius: 8px; min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: flex; flex-direction: column; align-items: stretch;
+    }
+    .modal-content input { margin-bottom: 8px; }
+    .modal-content button { margin-top: 4px; }
   </style>
 </head>
 <body>
-  <h3>Custom Keywords</h3>
+  <div class="counter" id="blockedCounter">Blocked posts: ...</div>
+  <div class="section-title">Default Keywords</div>
+  <ul id="defaultKeywordList"></ul>
+  <div class="section-title">Custom Keywords</div>
   <input id="keywordInput" type="text" placeholder="Add keyword..." />
   <button id="addBtn">Add</button>
   <ul id="keywordList"></ul>
   <small>Default keywords are always active.</small>
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <label for="editInput">Edit keyword:</label>
+      <input id="editInput" type="text" />
+      <button id="saveEditBtn">Save</button>
+      <button id="cancelEditBtn">Cancel</button>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>
