@@ -57,20 +57,39 @@ function addLog(level, message, data = null) {
 
 function renderLogs() {
     const logContent = document.getElementById('logContent');
-    
-    const logHtml = logs.map(log => {
-        const dataText = log.data ? ` ${JSON.stringify(log.data)}` : '';
-        return `
-            <div class="log-entry">
-                <span class="log-timestamp">[${log.timestamp}]</span>
-                <span class="log-level-${log.level}">[${log.level.toUpperCase()}]</span>
-                ${log.message}${dataText}
-            </div>
-        `;
-    }).join('');
-    
-    logContent.innerHTML = logHtml || '<div class="log-entry">No logs yet...</div>';
-    
+    logContent.textContent = '';
+    if (!logs.length) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'log-entry';
+        emptyDiv.textContent = 'No logs yet...';
+        logContent.appendChild(emptyDiv);
+    } else {
+        logs.forEach(log => {
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'log-entry';
+
+            const ts = document.createElement('span');
+            ts.className = 'log-timestamp';
+            ts.textContent = `[${log.timestamp}]`;
+            entryDiv.appendChild(ts);
+
+            const level = document.createElement('span');
+            level.className = `log-level-${log.level}`;
+            level.textContent = `[${log.level.toUpperCase()}]`;
+            entryDiv.appendChild(level);
+
+            const msg = document.createElement('span');
+            msg.textContent = ` ${log.message}`;
+            entryDiv.appendChild(msg);
+
+            if (log.data) {
+                const dataSpan = document.createElement('span');
+                dataSpan.textContent = ` ${JSON.stringify(log.data)}`;
+                entryDiv.appendChild(dataSpan);
+            }
+            logContent.appendChild(entryDiv);
+        });
+    }
     // Auto-scroll to bottom
     logContent.scrollTop = logContent.scrollHeight;
 }
