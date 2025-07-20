@@ -8,7 +8,7 @@ const editInput = document.getElementById('editInput');
 const saveEditBtn = document.getElementById('saveEditBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
 
-const defaultKeywords = [
+const initialDefaultKeywords = [
   "AI",
   "artificial intelligence",
   "chatgpt",
@@ -22,13 +22,40 @@ const defaultKeywords = [
 ];
 
 let editingIdx = null;
+let editingType = null; // 'default' or 'custom'
 
-function renderDefaultKeywords() {
+function initializeKeywords() {
+  return browser.storage.local.get({ defaultKeywords: [], customKeywords: [] })
+    .then(data => {
+      // If no default keywords stored, initialize with the preset list
+      if (data.defaultKeywords.length === 0) {
+        browser.storage.local.set({ defaultKeywords: [...initialDefaultKeywords] });
+        return { defaultKeywords: [...initialDefaultKeywords], customKeywords: data.customKeywords };
+      }
+      return data;
+    });
+}
+
+function renderDefaultKeywords(keywords) {
   defaultKeywordList.innerHTML = '';
-  defaultKeywords.forEach(kw => {
+  keywords.forEach((kw, idx) => {
     const li = document.createElement('li');
     li.textContent = kw;
     li.className = 'default-keyword';
+    // Edit (gear) icon
+    const edit = document.createElement('span');
+    edit.textContent = '\u2699';
+    edit.className = 'edit';
+    edit.title = 'Edit keyword';
+    edit.onclick = () => showEditModal(idx, kw, 'default');
+    li.appendChild(edit);
+    // Remove (trash) icon
+    const rm = document.createElement('span');
+    rm.textContent = '\uD83D\uDDD1'; // trash can emoji
+    rm.className = 'remove';
+    rm.title = 'Delete keyword';
+    rm.onclick = () => removeKeyword(idx, 'default');
+    li.appendChild(rm);
     defaultKeywordList.appendChild(li);
   });
 }
@@ -43,27 +70,30 @@ function renderKeywords(keywords) {
     edit.textContent = '\u2699';
     edit.className = 'edit';
     edit.title = 'Edit keyword';
-    edit.onclick = () => showEditModal(idx, kw);
+    edit.onclick = () => showEditModal(idx, kw, 'custom');
     li.appendChild(edit);
     // Remove (trash) icon
     const rm = document.createElement('span');
     rm.textContent = '\uD83D\uDDD1'; // trash can emoji
     rm.className = 'remove';
     rm.title = 'Delete keyword';
-    rm.onclick = () => removeKeyword(idx);
+    rm.onclick = () => removeKeyword(idx, 'custom');
     li.appendChild(rm);
     keywordList.appendChild(li);
   });
 }
 
 function loadKeywords() {
-  browser.storage.local.get({ customKeywords: [] }).then(data => {
+  return initializeKeywords().then(data => {
+    renderDefaultKeywords(data.defaultKeywords);
     renderKeywords(data.customKeywords);
+    return data;
   });
 }
 
-function saveKeywords(keywords) {
-  browser.storage.local.set({ customKeywords: keywords });
+function saveKeywords(keywords, type = 'custom') {
+  const key = type === 'default' ? 'defaultKeywords' : 'customKeywords';
+  browser.storage.local.set({ [key]: keywords });
 }
 
 function addKeyword() {
@@ -72,23 +102,30 @@ function addKeyword() {
   browser.storage.local.get({ customKeywords: [] }).then(data => {
     if (!data.customKeywords.includes(kw)) {
       const updated = [...data.customKeywords, kw];
-      saveKeywords(updated);
+      saveKeywords(updated, 'custom');
       renderKeywords(updated);
       keywordInput.value = '';
     }
   });
 }
 
-function removeKeyword(idx) {
-  browser.storage.local.get({ customKeywords: [] }).then(data => {
-    data.customKeywords.splice(idx, 1);
-    saveKeywords(data.customKeywords);
-    renderKeywords(data.customKeywords);
+function removeKeyword(idx, type = 'custom') {
+  const key = type === 'default' ? 'defaultKeywords' : 'customKeywords';
+  browser.storage.local.get({ [key]: [] }).then(data => {
+    const keywords = data[key];
+    keywords.splice(idx, 1);
+    saveKeywords(keywords, type);
+    if (type === 'default') {
+      renderDefaultKeywords(keywords);
+    } else {
+      renderKeywords(keywords);
+    }
   });
 }
 
-function showEditModal(idx, oldValue) {
+function showEditModal(idx, oldValue, type = 'custom') {
   editingIdx = idx;
+  editingType = type;
   editInput.value = oldValue;
   editModal.style.display = 'flex';
   editInput.focus();
@@ -96,17 +133,24 @@ function showEditModal(idx, oldValue) {
 
 function hideEditModal() {
   editingIdx = null;
+  editingType = null;
   editModal.style.display = 'none';
 }
 
 saveEditBtn.onclick = function() {
   const newValue = editInput.value.trim();
   if (!newValue) return;
-  browser.storage.local.get({ customKeywords: [] }).then(data => {
-    if (editingIdx !== null && editingIdx < data.customKeywords.length) {
-      data.customKeywords[editingIdx] = newValue;
-      saveKeywords(data.customKeywords);
-      renderKeywords(data.customKeywords);
+  const key = editingType === 'default' ? 'defaultKeywords' : 'customKeywords';
+  browser.storage.local.get({ [key]: [] }).then(data => {
+    const keywords = data[key];
+    if (editingIdx !== null && editingIdx < keywords.length) {
+      keywords[editingIdx] = newValue;
+      saveKeywords(keywords, editingType);
+      if (editingType === 'default') {
+        renderDefaultKeywords(keywords);
+      } else {
+        renderKeywords(keywords);
+      }
       hideEditModal();
     }
   });
@@ -122,9 +166,22 @@ function updateBlockedCounter() {
 
 addBtn.onclick = addKeyword;
 
+// Allow adding keywords with Enter key
+keywordInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    addKeyword();
+  }
+});
+
+// Allow saving edits with Enter key
+editInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    saveEditBtn.click();
+  }
+});
+
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-  renderDefaultKeywords();
   loadKeywords();
   updateBlockedCounter();
 });

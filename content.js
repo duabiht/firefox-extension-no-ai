@@ -32,12 +32,21 @@ window.noAIStats = {
 // Send logs to DevTools panel
 function sendToDevTools(level, message, data = null) {
   try {
-    chrome.runtime.sendMessage({
-      type: 'no-ai-log',
-      level: level,
-      message: message,
-      data: data
-    });
+    if (typeof browser !== 'undefined' && browser.runtime) {
+      browser.runtime.sendMessage({
+        type: 'no-ai-log',
+        level: level,
+        message: message,
+        data: data
+      });
+    } else if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({
+        type: 'no-ai-log',
+        level: level,
+        message: message,
+        data: data
+      });
+    }
   } catch (e) {
     // DevTools panel might not be open, ignore errors
   }
@@ -46,10 +55,17 @@ function sendToDevTools(level, message, data = null) {
 // Send stats to DevTools panel
 function sendStatsToDevTools() {
   try {
-    chrome.runtime.sendMessage({
-      type: 'no-ai-stats',
-      stats: window.noAIStats
-    });
+    if (typeof browser !== 'undefined' && browser.runtime) {
+      browser.runtime.sendMessage({
+        type: 'no-ai-stats',
+        stats: window.noAIStats
+      });
+    } else if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage({
+        type: 'no-ai-stats',
+        stats: window.noAIStats
+      });
+    }
   } catch (e) {
     // DevTools panel might not be open, ignore errors
   }
@@ -86,9 +102,29 @@ function findAllInShadow(root, selector) {
   return results;
 }
 
-function hideAIposts(customKeywords = []) {
+function hideAIposts(allKeywords = []) {
   noAILog.info('Running filter check...');
   window.noAIStats.filterRuns++;
+  
+  // If no keywords provided, use fallback keywords
+  if (allKeywords.length === 0) {
+    allKeywords = [
+      "AI",
+      "artificial intelligence", 
+      "chatgpt",
+      "gpt-4",
+      "openai",
+      "midjourney",
+      "dall-e",
+      "machine learning",
+      "neural network",
+      "llm"
+    ];
+  }
+  
+  // Separate case-sensitive and case-insensitive keywords
+  const caseSensitiveKeywords = allKeywords.filter(kw => kw === "AI");
+  const caseInsensitiveKeywords = allKeywords.filter(kw => kw !== "AI");
   
   // Try multiple selectors for different Reddit layouts
   const selectors = [
@@ -184,7 +220,7 @@ function hideAIposts(customKeywords = []) {
     let matchedKeyword = '';
     
     // Check for exact 'AI' (case-sensitive)
-    if (aiKeywordsCaseSensitive.some(keyword => text.includes(keyword))) {
+    if (caseSensitiveKeywords.some(keyword => text.includes(keyword))) {
       shouldHide = true;
       matchedKeyword = 'AI';
     }
@@ -192,8 +228,7 @@ function hideAIposts(customKeywords = []) {
     // Check for other keywords (case-insensitive)
     if (!shouldHide) {
       const lowerText = text.toLowerCase();
-      const foundKeyword = aiKeywordsCaseInsensitive.find(keyword => lowerText.includes(keyword)) ||
-                          (customKeywords && customKeywords.find(keyword => lowerText.includes(keyword.toLowerCase())));
+      const foundKeyword = caseInsensitiveKeywords.find(keyword => lowerText.includes(keyword.toLowerCase()));
       if (foundKeyword) {
         shouldHide = true;
         matchedKeyword = foundKeyword;
@@ -211,22 +246,28 @@ function hideAIposts(customKeywords = []) {
   window.noAIStats.postsHidden = hiddenCount;
   noAILog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
   sendStatsToDevTools();
+  // Store blocked count for popup
+  if (browser && browser.storage && browser.storage.local) {
+    browser.storage.local.set({ blockedCount: hiddenCount });
+  }
 }
 
-// Load custom keywords from storage and run filter
+// Load both default and custom keywords from storage and run filter
 function runWithCustomKeywords() {
   if (!window.browser && window.chrome) {
     window.browser = window.chrome; // Compatibility
   }
   
   if (window.browser && window.browser.storage) {
-    window.browser.storage.local.get(['customKeywords'], (result) => {
+    window.browser.storage.local.get(['defaultKeywords', 'customKeywords'], (result) => {
+      const defaultKeywords = result.defaultKeywords || [];
       const customKeywords = result.customKeywords || [];
-      noAILog.info('Loaded custom keywords:', customKeywords);
-      hideAIposts(customKeywords);
+      const allKeywords = [...defaultKeywords, ...customKeywords];
+      noAILog.info('Loaded keywords:', { default: defaultKeywords, custom: customKeywords });
+      hideAIposts(allKeywords);
     });
   } else {
-    noAILog.warn('Storage API not available, using default keywords only');
+    noAILog.warn('Storage API not available, using built-in keywords only');
     hideAIposts();
   }
 }
