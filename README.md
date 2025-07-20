@@ -12,12 +12,12 @@ Tired of seeing AI-related posts on Reddit? Want a cleaner, more human feed? **n
 
 ---
 
+
 ## 🛠️ Popup Features
 
 - **Blocked posts counter**: See how many posts have been hidden, right in the popup.
-- **Default keywords**: Always active, visible in the popup (not editable).
-- **Custom keywords**: Add, edit (gear icon), or delete (red trash) your own keywords directly in the popup.
-- **Live editing**: Click the gear to rename a custom keyword, or the trash to remove it.
+- **All keywords**: Add, edit (gear icon), or delete (red trash) any keyword—default or custom—directly in the popup.
+- **Live editing**: Click the gear to rename any keyword, or the trash to remove it. No more untouchable defaults—take full control!
 
 ---
 
