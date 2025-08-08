@@ -9,17 +9,18 @@ const INITIAL_DEFAULT_PACK = {
   name: 'AI (Default)',
   enabled: true,
   expanded: true,
+  caseSensitiveDefault: false,
   keywords: [
-    { text: 'AI', enabled: true, isDefault: true },
-    { text: 'artificial intelligence', enabled: true, isDefault: true },
-    { text: 'chatgpt', enabled: true, isDefault: true },
-    { text: 'gpt-4', enabled: true, isDefault: true },
-    { text: 'openai', enabled: true, isDefault: true },
-    { text: 'midjourney', enabled: true, isDefault: true },
-    { text: 'dall-e', enabled: true, isDefault: true },
-    { text: 'machine learning', enabled: true, isDefault: true },
-    { text: 'neural network', enabled: true, isDefault: true },
-    { text: 'llm', enabled: true, isDefault: true },
+    { text: 'AI', enabled: true, isDefault: true, caseSensitive: true },
+    { text: 'artificial intelligence', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'chatgpt', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'gpt-4', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'openai', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'midjourney', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'dall-e', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'machine learning', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'neural network', enabled: true, isDefault: true, caseSensitive: false },
+    { text: 'llm', enabled: true, isDefault: true, caseSensitive: false },
   ]
 };
 
@@ -32,10 +33,12 @@ function getDefaultPacks() {
       description: pack.description,
       enabled: pack.enabled,
       expanded: false,
+      caseSensitiveDefault: pack.caseSensitiveDefault || false,
       keywords: pack.keywords.map(kw => ({ 
         text: kw.text, 
         enabled: kw.enabled, 
-        isDefault: false 
+        isDefault: false,
+        caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
       }))
     }));
   }
@@ -199,11 +202,27 @@ function renderPacks(state) {
     exportBtn.title = 'Export pack';
     exportBtn.onclick = () => exportPack(pack);
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'pack-edit';
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.title = 'Delete pack';
+    deleteBtn.style.color = '#c62828';
+    deleteBtn.onclick = () => {
+      if (confirm(`Delete pack "${pack.name}"? This cannot be undone.`)) {
+        const packIndex = state.packs.indexOf(pack);
+        if (packIndex > -1) {
+          state.packs.splice(packIndex, 1);
+          saveState(state).then(() => renderPacks(state));
+        }
+      }
+    };
+
     header.appendChild(expand);
     header.appendChild(toggle);
     header.appendChild(name);
     header.appendChild(editBtn);
     header.appendChild(exportBtn);
+    header.appendChild(deleteBtn);
 
     const body = document.createElement('div');
     body.className = 'pack-body' + (pack.expanded ? ' open' : '');
@@ -396,10 +415,12 @@ function showPresets(state) {
         description: preset.description,
         enabled: preset.enabled,
         expanded: false,
+        caseSensitiveDefault: preset.caseSensitiveDefault || false,
         keywords: preset.keywords.map(kw => ({ 
           text: kw.text, 
           enabled: kw.enabled, 
-          isDefault: false 
+          isDefault: false,
+          caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
         }))
       };
       state.packs.push(pack);
