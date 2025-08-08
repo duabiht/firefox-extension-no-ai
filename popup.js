@@ -25,13 +25,13 @@ const INITIAL_DEFAULT_PACK = {
 };
 
 function getDefaultPacks() {
-  // Use the packs from packs.js if available
+  // Use all packs from packs.js if available, set them as disabled by default
   if (typeof window !== 'undefined' && window.FilteritPacks) {
     return window.FilteritPacks.DEFAULT_PACKS.map(pack => ({
       id: uid(),
       name: pack.name,
       description: pack.description,
-      enabled: pack.enabled,
+      enabled: pack.name === 'AI & Tech' ? true : false, // Only AI & Tech enabled by default
       expanded: false,
       caseSensitiveDefault: pack.caseSensitiveDefault || false,
       keywords: pack.keywords.map(kw => ({ 
@@ -46,9 +46,9 @@ function getDefaultPacks() {
 }
 
 function migrateOldStorage(data) {
-  // If packs already exist, migrate case sensitivity properties
+  // If packs already exist, migrate case sensitivity properties and ensure all presets are available
   if (data && Array.isArray(data.packs)) {
-    const packs = data.packs.map(pack => {
+    let packs = data.packs.map(pack => {
       // Add caseSensitiveDefault if missing
       if (pack.caseSensitiveDefault === undefined) {
         pack.caseSensitiveDefault = false;
@@ -65,6 +65,29 @@ function migrateOldStorage(data) {
       }
       return pack;
     });
+
+    // Add missing preset packs (disabled by default)
+    if (typeof window !== 'undefined' && window.FilteritPacks) {
+      const existingPackNames = packs.map(p => p.name);
+      const missingPacks = window.FilteritPacks.DEFAULT_PACKS
+        .filter(preset => !existingPackNames.includes(preset.name))
+        .map(pack => ({
+          id: uid(),
+          name: pack.name,
+          description: pack.description,
+          enabled: false, // New packs disabled by default
+          expanded: false,
+          caseSensitiveDefault: pack.caseSensitiveDefault || false,
+          keywords: pack.keywords.map(kw => ({ 
+            text: kw.text, 
+            enabled: kw.enabled, 
+            isDefault: false,
+            caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
+          }))
+        }));
+      packs = [...packs, ...missingPacks];
+    }
+
     return { packs, globalPause: !!data.globalPause };
   }
   const defaultKeywords = data?.defaultKeywords || [];
