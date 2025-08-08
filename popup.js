@@ -35,13 +35,32 @@ const INITIAL_DEFAULT_PACK = {
   ]
 };
 
+function getDefaultPacks() {
+  // Use the packs from packs.js if available
+  if (typeof window !== 'undefined' && window.FilteritPacks) {
+    return window.FilteritPacks.DEFAULT_PACKS.map(pack => ({
+      id: uid(),
+      name: pack.name,
+      description: pack.description,
+      enabled: pack.enabled,
+      expanded: false,
+      keywords: pack.keywords.map(kw => ({ 
+        text: kw.text, 
+        enabled: kw.enabled, 
+        isDefault: false 
+      }))
+    }));
+  }
+  return [INITIAL_DEFAULT_PACK];
+}
+
 function migrateOldStorage(data) {
   // If packs already exist, skip
   if (data && Array.isArray(data.packs)) return { packs: data.packs, globalPause: !!data.globalPause };
   const defaultKeywords = data?.defaultKeywords || [];
   const customKeywords = data?.customKeywords || [];
   if (defaultKeywords.length === 0 && customKeywords.length === 0) {
-    return { packs: [INITIAL_DEFAULT_PACK], globalPause: false };
+    return { packs: getDefaultPacks(), globalPause: false };
   }
   const pack = {
     id: uid(),
@@ -156,10 +175,17 @@ function renderPacks(state) {
     editBtn.title = 'Rename pack';
     editBtn.onclick = () => openEditModal('Rename pack', pack.name, (val) => { pack.name = val; saveState(state).then(() => renderPacks(state)); });
 
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'pack-edit';
+    exportBtn.textContent = '📤';
+    exportBtn.title = 'Export pack';
+    exportBtn.onclick = () => exportPack(pack);
+
     header.appendChild(expand);
     header.appendChild(toggle);
     header.appendChild(name);
     header.appendChild(editBtn);
+    header.appendChild(exportBtn);
 
     const body = document.createElement('div');
     body.className = 'pack-body' + (pack.expanded ? ' open' : '');
@@ -255,6 +281,119 @@ function addPack(state) {
   return saveState(state).then(() => renderPacks(state));
 }
 
+function exportPack(pack) {
+  try {
+    const code = window.FilteritPacks ? window.FilteritPacks.exportPack(pack) : btoa(JSON.stringify({
+      name: pack.name,
+      description: pack.description || '',
+      keywords: pack.keywords.map(kw => ({ text: kw.text, enabled: kw.enabled }))
+    }));
+    
+    openModal('Export Pack', `
+      <div>Share this code:</div>
+      <textarea class="export-code" readonly>${code}</textarea>
+      <div style="font-size: 12px; color: #666; margin-top: 8px;">Copy and share this code with others to share your filter pack.</div>
+    `, [
+      { text: 'Copy to Clipboard', action: () => { navigator.clipboard.writeText(code); } },
+      { text: 'Close', action: () => {} }
+    ]);
+  } catch (e) {
+    alert('Failed to export pack: ' + e.message);
+  }
+}
+
+function importPack(state) {
+  openEditModal('Import Pack Code', '', (code) => {
+    try {
+      const imported = window.FilteritPacks ? window.FilteritPacks.importPack(code) : JSON.parse(atob(code));
+      const pack = {
+        id: uid(),
+        name: imported.name,
+        description: imported.description || '',
+        enabled: true,
+        expanded: true,
+        keywords: imported.keywords.map(kw => ({ 
+          text: kw.text, 
+          enabled: kw.enabled !== false, 
+          isDefault: false 
+        }))
+      };
+      state.packs.push(pack);
+      saveState(state).then(() => renderPacks(state));
+    } catch (e) {
+      alert('Failed to import pack: Invalid code format');
+    }
+  });
+}
+
+function showPresets(state) {
+  const presets = window.FilteritPacks ? window.FilteritPacks.DEFAULT_PACKS : [];
+  if (presets.length === 0) {
+    alert('No presets available');
+    return;
+  }
+  
+  const list = presets.map(preset => `
+    <div class="preset-item">
+      <div class="preset-info">
+        <div class="preset-name">${preset.name}</div>
+        <div class="preset-desc">${preset.description}</div>
+      </div>
+      <button class="preset-btn" onclick="installPreset('${preset.name}')">Add</button>
+    </div>
+  `).join('');
+  
+  window.installPreset = (name) => {
+    const preset = presets.find(p => p.name === name);
+    if (preset) {
+      const pack = {
+        id: uid(),
+        name: preset.name,
+        description: preset.description,
+        enabled: preset.enabled,
+        expanded: false,
+        keywords: preset.keywords.map(kw => ({ 
+          text: kw.text, 
+          enabled: kw.enabled, 
+          isDefault: false 
+        }))
+      };
+      state.packs.push(pack);
+      saveState(state).then(() => {
+        renderPacks(state);
+        document.getElementById('editModal').style.display = 'none';
+      });
+    }
+  };
+  
+  openModal('Install Preset Packs', `<div class="preset-list">${list}</div>`, [
+    { text: 'Close', action: () => {} }
+  ]);
+}
+
+function openModal(title, content, buttons = []) {
+  const modal = document.getElementById('editModal');
+  const modalLabel = document.getElementById('modalLabel');
+  const modalContent = modal.querySelector('.modal-content');
+  
+  modalLabel.textContent = title;
+  modalContent.innerHTML = `
+    <div>${content}</div>
+    <div class="modal-actions">
+      ${buttons.map((btn, i) => `<button id="modalBtn${i}">${btn.text}</button>`).join('')}
+    </div>
+  `;
+  
+  buttons.forEach((btn, i) => {
+    document.getElementById(`modalBtn${i}`).onclick = () => {
+      btn.action();
+      modal.style.display = 'none';
+    };
+  });
+  
+  modal.style.display = 'flex';
+}
+
 function updatePauseUI(paused) {
   pauseBtn.textContent = paused ? '▶️ Paused' : '⏸️ Active';
   pauseBtn.classList.toggle('paused', paused);
@@ -347,6 +486,8 @@ function initPopup() {
   loadState().then(state => {
     renderPacks(state);
     document.getElementById('addPackBtn').onclick = () => addPack(state);
+    document.getElementById('importPackBtn').onclick = () => importPack(state);
+    document.getElementById('presetsBtn').onclick = () => showPresets(state);
     pauseBtn.onclick = async () => {
       const data = await browser.storage.local.get({ globalPause: false });
       const newVal = !data.globalPause;

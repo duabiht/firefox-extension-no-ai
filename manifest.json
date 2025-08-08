@@ -12,7 +12,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.reddit.com/*"],
-      "js": ["content.js"]
+      "js": ["packs.js", "content.js"]
     }
   ],
   "devtools_page": "devtools.html",
