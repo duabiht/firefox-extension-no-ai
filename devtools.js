@@ -1,18 +1,18 @@
-// Create a DevTools panel for the no-ai extension
+// Create a DevTools panel for the Filterit extension
 chrome.devtools.panels.create(
-    "No-AI Filter",
+    "Filterit",
     "icon-48.png",
     "panel.html",
     function(panel) {
-        console.log("No-AI DevTools panel created");
+        console.log("Filterit DevTools panel created");
         
         // Optional: Handle panel show/hide events
         panel.onShown.addListener(function(window) {
-            console.log("No-AI panel shown");
+            console.log("Filterit panel shown");
         });
         
         panel.onHidden.addListener(function() {
-            console.log("No-AI panel hidden");
+            console.log("Filterit panel hidden");
         });
     }
 );

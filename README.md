@@ -1,38 +1,42 @@
-# 🚫🤖 no-ai Firefox Extension
+# 🛑 Filterit (Firefox Extension)
 
-Tired of seeing AI-related posts on Reddit? Want a cleaner, more human feed? **no-ai** is here to help! This extension automatically hides posts about AI, so you can scroll in peace. ✨
+Filter any Reddit posts using your own keywords. Filterit lets you customize what you don't want to see and browse Reddit with less noise.
 
 ---
 
 ## ✨ How It Works
 
-🔍 Scans every Reddit post for a list of AI-related keywords (like `AI`, `ChatGPT`, `GPT-4`, and more).
 
-🙈 If a post contains any of these keywords, it disappears from your feed! The filter is case-insensitive for most keywords, but only hides posts with the exact uppercase `AI` (so French words like "j'ai" are safe!).
+🔍 Scans every Reddit post for a list of keywords (ships with a default list you can fully edit).
+
+🙈 If a post contains any of these keywords, it disappears from your feed. Most matches are case-insensitive, but you can keep case-sensitive ones like `AI` if you want.
 
 ---
+
 
 
 ## 🛠️ Popup Features
 
-- **Blocked posts counter**: See how many posts have been hidden, right in the popup.
-- **All keywords**: Add, edit (gear icon), or delete (red trash) any keyword—default or custom—directly in the popup.
-- **Live editing**: Click the gear to rename any keyword, or the trash to remove it. No more untouchable defaults—take full control!
+- Blocked posts counter
+- Add, edit (gear), delete (trash) any keyword — default or custom
+- Live editing with instant effect
 
 ---
 
+
 ## 🛠️ DevTools Panel (Advanced Debugging)
 
-The extension now includes a custom **No-AI Filter** tab in your browser's DevTools (F12), just like Adblock Plus!
+Includes a custom **Filterit** tab in DevTools (F12):
 
-- **Live stats**: See how many posts were found, hidden, and how many times the filter ran.
-- **Live logs**: All extension activity and filtering decisions are shown in real time, with color-coded log levels.
-- **Controls**: Run the filter manually, clear logs, or export logs as a text file.
+- Live stats and logs
+- Run the filter manually, clear or export logs
+
+---
 
 **How to use:**
 1. Reload the extension in Firefox (about:debugging or via Add-ons page).
 2. Open Reddit and press F12 to open DevTools.
-3. Click the new **No-AI Filter** tab to monitor and debug the extension in real time!
+3. Click the new **Filterit** tab to monitor and debug the extension in real time.
 
 ---
 
@@ -50,14 +54,15 @@ For a polished look, the extension includes these icons:
 
 ## ☕ Support
 
-If you enjoy using **no-ai**, consider supporting development: [Buy Me a Coffee](https://buymeacoffee.com/duabiht)
+
+If you enjoy using **Filterit**, consider supporting development: [Buy Me a Coffee](https://buymeacoffee.com/duabiht)
 
 ---
 
 ## 🚀 Get Started
 
 1. Install the extension (see instructions above or on AMO).
-2. Browse Reddit as usual—AI-related posts (and any posts matching your custom keywords) will be removed automatically.
+2. Browse Reddit as usual — posts matching your custom keywords will be removed automatically.
 3. Enjoy a cleaner, more relevant Reddit experience!
 
 ---

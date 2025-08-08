@@ -1,29 +1,29 @@
-// Custom logging function for the no-ai extension
-const noAILog = {
+// Custom logging function for the Filterit extension
+const fitLog = {
   info: (...args) => {
-    console.log('%c[no-ai]', 'color: #4CAF50; font-weight: bold;', ...args);
+    console.log('%c[Filterit]', 'color: #4CAF50; font-weight: bold;', ...args);
     sendToDevTools('info', args.join(' '));
   },
   debug: (...args) => {
-    console.log('%c[no-ai DEBUG]', 'color: #2196F3; font-weight: bold;', ...args);
+    console.log('%c[FIT DEBUG]', 'color: #2196F3; font-weight: bold;', ...args);
     sendToDevTools('debug', args.join(' '));
   },
   warn: (...args) => {
-    console.warn('%c[no-ai WARN]', 'color: #FF9800; font-weight: bold;', ...args);
+    console.warn('%c[FIT WARN]', 'color: #FF9800; font-weight: bold;', ...args);
     sendToDevTools('warn', args.join(' '));
   },
   error: (...args) => {
-    console.error('%c[no-ai ERROR]', 'color: #F44336; font-weight: bold;', ...args);
+    console.error('%c[FIT ERROR]', 'color: #F44336; font-weight: bold;', ...args);
     sendToDevTools('error', args.join(' '));
   },
   success: (...args) => {
-    console.log('%c[no-ai SUCCESS]', 'color: #8BC34A; font-weight: bold;', ...args);
+    console.log('%c[FIT SUCCESS]', 'color: #8BC34A; font-weight: bold;', ...args);
     sendToDevTools('success', args.join(' '));
   }
 };
 
 // Statistics tracking
-window.noAIStats = {
+window.filteritStats = {
   postsFound: 0,
   postsHidden: 0,
   filterRuns: 0
@@ -33,19 +33,9 @@ window.noAIStats = {
 function sendToDevTools(level, message, data = null) {
   try {
     if (typeof browser !== 'undefined' && browser.runtime) {
-      browser.runtime.sendMessage({
-        type: 'no-ai-log',
-        level: level,
-        message: message,
-        data: data
-      });
+      browser.runtime.sendMessage({ type: 'filterit-log', level, message, data });
     } else if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.sendMessage({
-        type: 'no-ai-log',
-        level: level,
-        message: message,
-        data: data
-      });
+      chrome.runtime.sendMessage({ type: 'filterit-log', level, message, data });
     }
   } catch (e) {
     // DevTools panel might not be open, ignore errors
@@ -56,24 +46,18 @@ function sendToDevTools(level, message, data = null) {
 function sendStatsToDevTools() {
   try {
     if (typeof browser !== 'undefined' && browser.runtime) {
-      browser.runtime.sendMessage({
-        type: 'no-ai-stats',
-        stats: window.noAIStats
-      });
+      browser.runtime.sendMessage({ type: 'filterit-stats', stats: window.filteritStats });
     } else if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.sendMessage({
-        type: 'no-ai-stats',
-        stats: window.noAIStats
-      });
+      chrome.runtime.sendMessage({ type: 'filterit-stats', stats: window.filteritStats });
     }
   } catch (e) {
     // DevTools panel might not be open, ignore errors
   }
 }
 
-// Default AI-related keywords to filter (case-insensitive, except 'AI' which is case-sensitive)
-const aiKeywordsCaseSensitive = ["AI"];
-const aiKeywordsCaseInsensitive = [
+// Default keywords to filter (customizable by user)
+const defaultKeywordsCaseSensitive = ["AI"];
+const defaultKeywordsCaseInsensitive = [
   "artificial intelligence",
   "chatgpt",
   "gpt-4",
@@ -102,9 +86,9 @@ function findAllInShadow(root, selector) {
   return results;
 }
 
-function hideAIposts(allKeywords = []) {
-  noAILog.info('Running filter check...');
-  window.noAIStats.filterRuns++;
+function filterPosts(allKeywords = []) {
+  fitLog.info('Running filter check...');
+  window.filteritStats.filterRuns++;
   
   // If no keywords provided, use fallback keywords
   if (allKeywords.length === 0) {
@@ -149,12 +133,12 @@ function hideAIposts(allKeywords = []) {
   posts = Array.from(new Set(posts));
   
   if (posts.length > 0) {
-    noAILog.debug(`Found ${posts.length} posts using multiple selectors`);
-    window.noAIStats.postsFound = posts.length;
+    fitLog.debug(`Found ${posts.length} posts using multiple selectors`);
+    window.filteritStats.postsFound = posts.length;
   }
   
   if (posts.length === 0) {
-    noAILog.warn('No posts found with any selector');
+    fitLog.warn('No posts found with any selector');
     sendStatsToDevTools();
     return;
   }
@@ -163,7 +147,7 @@ function hideAIposts(allKeywords = []) {
   
   posts.forEach((post, index) => {
     // Skip if already hidden
-    if (post.style.display === 'none' || post.hasAttribute('data-no-ai-hidden')) {
+    if (post.style.display === 'none' || post.hasAttribute('data-filterit-hidden')) {
       return;
     }
     
@@ -214,7 +198,7 @@ function hideAIposts(allKeywords = []) {
     text = text.trim();
     
     // Debug: log what is being checked
-    noAILog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+    fitLog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
     
     let shouldHide = false;
     let matchedKeyword = '';
@@ -237,14 +221,14 @@ function hideAIposts(allKeywords = []) {
     
     if (shouldHide) {
       post.style.display = 'none';
-      post.setAttribute('data-no-ai-hidden', 'true');
+      post.setAttribute('data-filterit-hidden', 'true');
       hiddenCount++;
-      noAILog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
+      fitLog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
     }
   });
   
-  window.noAIStats.postsHidden = hiddenCount;
-  noAILog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
+  window.filteritStats.postsHidden = hiddenCount;
+  fitLog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
   sendStatsToDevTools();
   // Store blocked count for popup
   if (browser && browser.storage && browser.storage.local) {
@@ -263,17 +247,17 @@ function runWithCustomKeywords() {
       const defaultKeywords = result.defaultKeywords || [];
       const customKeywords = result.customKeywords || [];
       const allKeywords = [...defaultKeywords, ...customKeywords];
-      noAILog.info('Loaded keywords:', { default: defaultKeywords, custom: customKeywords });
-      hideAIposts(allKeywords);
+      fitLog.info('Loaded keywords:', { default: defaultKeywords, custom: customKeywords });
+      filterPosts(allKeywords);
     });
   } else {
-    noAILog.warn('Storage API not available, using built-in keywords only');
-    hideAIposts();
+    fitLog.warn('Storage API not available, using built-in keywords only');
+    filterPosts();
   }
 }
 
 // Initial run
-noAILog.info('Extension loaded');
+fitLog.info('Filterit content script loaded');
 runWithCustomKeywords();
 
 // Watch for new content (Reddit loads posts dynamically)
@@ -288,7 +272,7 @@ const observer = new MutationObserver((mutations) => {
   if (added) {
     if (filterTimeout) clearTimeout(filterTimeout);
     filterTimeout = setTimeout(runWithCustomKeywords, 200);
-    noAILog.debug('DOM changed, re-running filter');
+    fitLog.debug('DOM changed, re-running filter');
   }
 });
 
@@ -297,4 +281,4 @@ observer.observe(document.body, {
   subtree: true
 });
 
-noAILog.info('MutationObserver started');
+fitLog.info('MutationObserver started');

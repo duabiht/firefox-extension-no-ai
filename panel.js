@@ -1,4 +1,4 @@
-// Panel JavaScript for the No-AI DevTools panel
+// Panel JavaScript for the Filterit DevTools panel
 let logs = [];
 let stats = {
     postsFound: 0,
@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-        if (message.type === 'no-ai-log') {
+        if (message.type === 'filterit-log') {
             addLog(message.level, message.message, message.data);
-        } else if (message.type === 'no-ai-stats') {
+        } else if (message.type === 'filterit-stats') {
             updateStatsFromMessage(message.stats);
         }
     });
@@ -27,10 +27,10 @@ function connectToContentScript() {
     // Inject a script to establish communication
     chrome.devtools.inspectedWindow.eval(`
         // Send existing stats if available
-        if (window.noAIStats) {
+        if (window.filteritStats) {
             chrome.runtime.sendMessage({
-                type: 'no-ai-stats',
-                stats: window.noAIStats
+                type: 'filterit-stats',
+                stats: window.filteritStats
             });
         }
     `);
@@ -111,7 +111,7 @@ function runFilter() {
         if (typeof runWithCustomKeywords === 'function') {
             runWithCustomKeywords();
         } else {
-            console.log('[no-ai] Filter function not available');
+            console.log('[filterit] Filter function not available');
         }
     `);
 }
@@ -132,7 +132,7 @@ function exportLogs() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `no-ai-logs-${new Date().toISOString().slice(0, 19)}.txt`;
+    a.download = `filterit-logs-${new Date().toISOString().slice(0, 19)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     
@@ -140,5 +140,5 @@ function exportLogs() {
 }
 
 // Initialize with a welcome message
-addLog('info', 'No-AI DevTools panel ready');
-addLog('debug', 'Monitoring Reddit AI post filtering activity');
+addLog('info', 'Filterit DevTools panel ready');
+addLog('debug', 'Monitoring Reddit post filtering activity');

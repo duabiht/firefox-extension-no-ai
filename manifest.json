@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Reddit AI Post Filter",
-  "version": "1.1",
-  "description": "Hides AI-related posts on Reddit.",
+  "name": "Filterit",
+  "version": "3.0",
+  "description": "Filter any Reddit posts using your own keywords.",
   "permissions": ["scripting", "storage"],
   "host_permissions": ["https://www.reddit.com/*"],
   "icons": {
@@ -25,7 +25,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "no-ai@duabiht",
+      "id": "filterit@duabiht",
       "strict_min_version": "109.0"
     }
   }
