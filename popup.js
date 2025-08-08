@@ -31,7 +31,7 @@ function getDefaultPacks() {
       id: uid(),
       name: pack.name,
       description: pack.description,
-      enabled: pack.name === 'AI & Tech' ? true : false, // Only AI & Tech enabled by default
+      enabled: false, // all packs disabled by default
       expanded: false,
       caseSensitiveDefault: pack.caseSensitiveDefault || false,
       keywords: pack.keywords.map(kw => ({ 
@@ -412,74 +412,70 @@ function importPack(state) {
   });
 }
 
+function openModal(title, content, buttons = []) {
+  const modal = document.getElementById('dialogModal');
+  const modalContent = modal.querySelector('.modal-content');
+  modalContent.innerHTML = `
+    <div style="font-weight:600; margin-bottom:6px;">${title}</div>
+    <div>${content}</div>
+    <div class="modal-actions">
+      ${buttons.map((btn, i) => `<button id="dialogBtn${i}">${btn.text}</button>`).join('')}
+    </div>
+  `;
+  buttons.forEach((btn, i) => {
+    document.getElementById(`dialogBtn${i}`).onclick = () => {
+      try { btn.action && btn.action(); } finally { modal.style.display = 'none'; }
+    };
+  });
+  modal.style.display = 'flex';
+}
+
 function showPresets(state) {
   const presets = window.FilteritPacks ? window.FilteritPacks.DEFAULT_PACKS : [];
-  if (presets.length === 0) {
-    alert('No presets available');
-    return;
-  }
-  
+  if (presets.length === 0) { alert('No presets available'); return; }
   const list = presets.map(preset => `
     <div class="preset-item">
       <div class="preset-info">
         <div class="preset-name">${preset.name}</div>
         <div class="preset-desc">${preset.description}</div>
       </div>
-      <button class="preset-btn" onclick="installPreset('${preset.name}')">Add</button>
-    </div>
-  `).join('');
-  
-  window.installPreset = (name) => {
-    const preset = presets.find(p => p.name === name);
-    if (preset) {
-      const pack = {
-        id: uid(),
-        name: preset.name,
-        description: preset.description,
-        enabled: preset.enabled,
-        expanded: false,
-        caseSensitiveDefault: preset.caseSensitiveDefault || false,
-        keywords: preset.keywords.map(kw => ({ 
-          text: kw.text, 
-          enabled: kw.enabled, 
-          isDefault: false,
-          caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
-        }))
-      };
-      state.packs.push(pack);
-      saveState(state).then(() => {
-        renderPacks(state);
-        document.getElementById('editModal').style.display = 'none';
-      });
-    }
-  };
-  
-  openModal('Install Preset Packs', `<div class="preset-list">${list}</div>`, [
-    { text: 'Close', action: () => {} }
-  ]);
-}
+      <button class="preset-btn" data-name="${preset.name}">Add</button>
+    </div>`).join('');
 
-function openModal(title, content, buttons = []) {
-  const modal = document.getElementById('editModal');
-  const modalLabel = document.getElementById('modalLabel');
-  const modalContent = modal.querySelector('.modal-content');
-  
-  modalLabel.textContent = title;
-  modalContent.innerHTML = `
-    <div>${content}</div>
-    <div class="modal-actions">
-      ${buttons.map((btn, i) => `<button id="modalBtn${i}">${btn.text}</button>`).join('')}
-    </div>
-  `;
-  
-  buttons.forEach((btn, i) => {
-    document.getElementById(`modalBtn${i}`).onclick = () => {
-      btn.action();
-      modal.style.display = 'none';
+  // Render modal first
+  openModal('Install Preset Packs', `<div class="preset-list">${list}</div>`, [ { text: 'Close', action: () => {} } ]);
+
+  // Then attach click handlers (avoid inline onclick due to CSP)
+  const modal = document.getElementById('dialogModal');
+  const btns = modal.querySelectorAll('.preset-btn');
+
+  const install = (name) => {
+    const preset = presets.find(p => p.name === name);
+    if (!preset) return;
+    const pack = {
+      id: uid(),
+      name: preset.name,
+      description: preset.description,
+      enabled: false,
+      expanded: false,
+      caseSensitiveDefault: preset.caseSensitiveDefault || false,
+      keywords: preset.keywords.map(kw => ({
+        text: kw.text,
+        enabled: kw.enabled,
+        isDefault: false,
+        caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
+      }))
     };
+    state.packs.push(pack);
+    saveState(state).then(() => { renderPacks(state); modal.style.display = 'none'; });
+  };
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.getAttribute('data-name');
+      install(name);
+    });
   });
-  
-  modal.style.display = 'flex';
 }
 
 function updatePauseUI(paused) {
