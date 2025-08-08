@@ -86,6 +86,139 @@ function findAllInShadow(root, selector) {
   return results;
 }
 
+function filterPostsWithCaseSensitivity(caseSensitiveKeywords = [], caseInsensitiveKeywords = []) {
+  fitLog.info('Running filter check with case sensitivity...');
+  window.filteritStats.filterRuns++;
+  
+  // Try multiple selectors for different Reddit layouts
+  const selectors = [
+    '[role="article"]',
+    '[data-testid="post-container"]',
+    '.Post',
+    'article',
+    'div[data-click-id="body"]',
+    'shreddit-post'
+  ];
+  
+  let posts = [];
+  // Collect posts from all selectors to avoid missing any
+  for (const selector of selectors) {
+    const found = document.querySelectorAll(selector);
+    if (found.length > 0) {
+      posts = posts.concat(Array.from(found));
+    }
+  }
+  
+  // Remove duplicates
+  posts = Array.from(new Set(posts));
+  
+  if (posts.length > 0) {
+    fitLog.debug(`Found ${posts.length} posts using multiple selectors`);
+    window.filteritStats.postsFound = posts.length;
+  }
+  
+  if (posts.length === 0) {
+    fitLog.warn('No posts found with any selector');
+    sendStatsToDevTools();
+    return;
+  }
+  
+  let hiddenCount = 0;
+  
+  posts.forEach((post, index) => {
+    // Skip if already hidden
+    if (post.style.display === 'none' || post.hasAttribute('data-filterit-hidden')) {
+      return;
+    }
+    
+    // Try to get the title and body text with improved extraction
+    let title = '';
+    let body = '';
+    
+    // Extract title from multiple possible elements
+    const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="post-title"]', 'a[data-click-id="body"]'];
+    for (const selector of titleSelectors) {
+      const titleElem = post.querySelector(selector);
+      if (titleElem) {
+        title = titleElem.innerText || titleElem.textContent || '';
+        if (title.trim()) break;
+      }
+    }
+    
+    // Try multiple selectors for post body content
+    const bodySelectors = [
+      'div[data-click-id="text"]',
+      'div[slot="text-body"]',
+      'div[data-testid="post-content"]',
+      '.RichTextJSON-root',
+      '.md',
+      'p',
+      'span'
+    ];
+    
+    for (const selector of bodySelectors) {
+      const bodyElem = post.querySelector(selector);
+      if (bodyElem) {
+        body = bodyElem.innerText || bodyElem.textContent || '';
+        if (body.trim()) break; // Use first non-empty result
+      }
+    }
+    
+    // Combine title and body, fallback to full post text
+    let text = (title + ' ' + body).trim();
+    if (!text) {
+      text = post.innerText || post.textContent || '';
+    }
+
+    // Add extraction from faceplate-screen-reader-content (including shadow DOM)
+    const srElems = findAllInShadow(post, 'faceplate-screen-reader-content');
+    for (const srElem of srElems) {
+      text += ' ' + (srElem.innerText || srElem.textContent || '');
+    }
+    text = text.trim();
+    
+    // Debug: log what is being checked
+    fitLog.debug(`Post ${index + 1} text:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+    
+    let shouldHide = false;
+    let matchedKeyword = '';
+    
+    // Check case-sensitive keywords first
+    if (caseSensitiveKeywords.length > 0) {
+      const foundKeyword = caseSensitiveKeywords.find(keyword => text.includes(keyword));
+      if (foundKeyword) {
+        shouldHide = true;
+        matchedKeyword = foundKeyword + ' (case-sensitive)';
+      }
+    }
+    
+    // Check case-insensitive keywords
+    if (!shouldHide && caseInsensitiveKeywords.length > 0) {
+      const lowerText = text.toLowerCase();
+      const foundKeyword = caseInsensitiveKeywords.find(keyword => lowerText.includes(keyword.toLowerCase()));
+      if (foundKeyword) {
+        shouldHide = true;
+        matchedKeyword = foundKeyword + ' (case-insensitive)';
+      }
+    }
+    
+    if (shouldHide) {
+      post.style.display = 'none';
+      post.setAttribute('data-filterit-hidden', 'true');
+      hiddenCount++;
+      fitLog.success(`Hidden post ${index + 1} (matched: "${matchedKeyword}")`);
+    }
+  });
+  
+  window.filteritStats.postsHidden = hiddenCount;
+  fitLog.info(`Hidden ${hiddenCount} out of ${posts.length} posts`);
+  sendStatsToDevTools();
+  // Store blocked count for popup
+  if (browser && browser.storage && browser.storage.local) {
+    browser.storage.local.set({ blockedCount: hiddenCount });
+  }
+}
+
 function filterPosts(allKeywords = []) {
   fitLog.info('Running filter check...');
   window.filteritStats.filterRuns++;
@@ -244,16 +377,28 @@ async function getActiveKeywordsFromPacks() {
       return { paused: true, keywords: [] };
     }
     const packs = Array.isArray(data.packs) ? data.packs : [];
-    const keywords = [];
+    const caseSensitiveKeywords = [];
+    const caseInsensitiveKeywords = [];
+    
     for (const pack of packs) {
       if (!pack.enabled) continue;
       for (const kw of (pack.keywords || [])) {
-        if (kw.enabled && typeof kw.text === 'string' && kw.text.trim()) keywords.push(kw.text.trim());
+        if (kw.enabled && typeof kw.text === 'string' && kw.text.trim()) {
+          if (kw.caseSensitive) {
+            caseSensitiveKeywords.push(kw.text.trim());
+          } else {
+            caseInsensitiveKeywords.push(kw.text.trim());
+          }
+        }
       }
     }
-    return { paused: false, keywords };
+    return { 
+      paused: false, 
+      caseSensitiveKeywords,
+      caseInsensitiveKeywords
+    };
   } catch (e) {
-    return { paused: false, keywords: [] };
+    return { paused: false, caseSensitiveKeywords: [], caseInsensitiveKeywords: [] };
   }
 }
 
@@ -261,8 +406,8 @@ async function runWithCustomKeywords() {
   if (!window.browser && window.chrome) {
     window.browser = window.chrome; // Compatibility
   }
-  const { paused, keywords } = await getActiveKeywordsFromPacks();
-  if (paused) {
+  const result = await getActiveKeywordsFromPacks();
+  if (result.paused) {
     fitLog.info('Global pause enabled: skipping filtering');
     // Set blocked count to 0 when paused
     if (browser && browser.storage && browser.storage.local) {
@@ -270,8 +415,8 @@ async function runWithCustomKeywords() {
     }
     return;
   }
-  if (keywords.length > 0) {
-    filterPosts(keywords);
+  if (result.caseSensitiveKeywords.length > 0 || result.caseInsensitiveKeywords.length > 0) {
+    filterPostsWithCaseSensitivity(result.caseSensitiveKeywords, result.caseInsensitiveKeywords);
     return;
   }
   // Backward compatibility: use old storage if no packs

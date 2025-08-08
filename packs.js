@@ -6,100 +6,106 @@ const DEFAULT_PACKS = [
     name: "AI & Tech",
     description: "AI, machine learning, and technology content",
     enabled: true,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "AI", enabled: true },
-      { text: "artificial intelligence", enabled: true },
-      { text: "chatgpt", enabled: true },
-      { text: "gpt-4", enabled: true },
-      { text: "openai", enabled: true },
-      { text: "midjourney", enabled: true },
-      { text: "dall-e", enabled: true },
-      { text: "machine learning", enabled: true },
-      { text: "neural network", enabled: true },
-      { text: "llm", enabled: true }
+      { text: "AI", enabled: true, caseSensitive: true },
+      { text: "artificial intelligence", enabled: true, caseSensitive: false },
+      { text: "chatgpt", enabled: true, caseSensitive: false },
+      { text: "gpt-4", enabled: true, caseSensitive: false },
+      { text: "openai", enabled: true, caseSensitive: false },
+      { text: "midjourney", enabled: true, caseSensitive: false },
+      { text: "dall-e", enabled: true, caseSensitive: false },
+      { text: "machine learning", enabled: true, caseSensitive: false },
+      { text: "neural network", enabled: true, caseSensitive: false },
+      { text: "llm", enabled: true, caseSensitive: false }
     ]
   },
   {
     name: "Politics",
     description: "Political discussions and news",
     enabled: false,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "politics", enabled: true },
-      { text: "election", enabled: true },
-      { text: "president", enabled: true },
-      { text: "government", enabled: true },
-      { text: "congress", enabled: true },
-      { text: "senate", enabled: true },
-      { text: "republican", enabled: true },
-      { text: "democrat", enabled: true },
-      { text: "liberal", enabled: true },
-      { text: "conservative", enabled: true },
-      { text: "voting", enabled: true },
-      { text: "campaign", enabled: true }
+      { text: "politics", enabled: true, caseSensitive: false },
+      { text: "election", enabled: true, caseSensitive: false },
+      { text: "president", enabled: true, caseSensitive: false },
+      { text: "government", enabled: true, caseSensitive: false },
+      { text: "congress", enabled: true, caseSensitive: false },
+      { text: "senate", enabled: true, caseSensitive: false },
+      { text: "republican", enabled: true, caseSensitive: false },
+      { text: "democrat", enabled: true, caseSensitive: false },
+      { text: "liberal", enabled: true, caseSensitive: false },
+      { text: "conservative", enabled: true, caseSensitive: false },
+      { text: "voting", enabled: true, caseSensitive: false },
+      { text: "campaign", enabled: true, caseSensitive: false }
     ]
   },
   {
     name: "War & Conflict",
     description: "War, conflict, and military content",
     enabled: false,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "war", enabled: true },
-      { text: "conflict", enabled: true },
-      { text: "battle", enabled: true },
-      { text: "invasion", enabled: true },
-      { text: "military", enabled: true },
-      { text: "army", enabled: true },
-      { text: "soldier", enabled: true },
-      { text: "weapons", enabled: true },
-      { text: "bombing", enabled: true },
-      { text: "attack", enabled: true }
+      { text: "war", enabled: true, caseSensitive: false },
+      { text: "conflict", enabled: true, caseSensitive: false },
+      { text: "battle", enabled: true, caseSensitive: false },
+      { text: "invasion", enabled: true, caseSensitive: false },
+      { text: "military", enabled: true, caseSensitive: false },
+      { text: "army", enabled: true, caseSensitive: false },
+      { text: "soldier", enabled: true, caseSensitive: false },
+      { text: "weapons", enabled: true, caseSensitive: false },
+      { text: "bombing", enabled: true, caseSensitive: false },
+      { text: "attack", enabled: true, caseSensitive: false }
     ]
   },
   {
     name: "Sports",
     description: "Sports discussions and news",
     enabled: false,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "football", enabled: true },
-      { text: "soccer", enabled: true },
-      { text: "basketball", enabled: true },
-      { text: "nba", enabled: true },
-      { text: "nfl", enabled: true },
-      { text: "mlb", enabled: true },
-      { text: "nhl", enabled: true },
-      { text: "olympics", enabled: true },
-      { text: "world cup", enabled: true },
-      { text: "championship", enabled: true },
-      { text: "playoff", enabled: true },
-      { text: "game score", enabled: true }
+      { text: "football", enabled: true, caseSensitive: false },
+      { text: "soccer", enabled: true, caseSensitive: false },
+      { text: "basketball", enabled: true, caseSensitive: false },
+      { text: "nba", enabled: true, caseSensitive: false },
+      { text: "nfl", enabled: true, caseSensitive: false },
+      { text: "mlb", enabled: true, caseSensitive: false },
+      { text: "nhl", enabled: true, caseSensitive: false },
+      { text: "olympics", enabled: true, caseSensitive: false },
+      { text: "world cup", enabled: true, caseSensitive: false },
+      { text: "championship", enabled: true, caseSensitive: false },
+      { text: "playoff", enabled: true, caseSensitive: false },
+      { text: "game score", enabled: true, caseSensitive: false }
     ]
   },
   {
     name: "Movie Spoilers",
     description: "Movie spoilers and plot discussions",
     enabled: false,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "spoiler", enabled: true },
-      { text: "movie ending", enabled: true },
-      { text: "plot twist", enabled: true },
-      { text: "spoilers ahead", enabled: true },
-      { text: "ending explained", enabled: true },
-      { text: "post credits", enabled: true },
-      { text: "leaked plot", enabled: true }
+      { text: "spoiler", enabled: true, caseSensitive: false },
+      { text: "movie ending", enabled: true, caseSensitive: false },
+      { text: "plot twist", enabled: true, caseSensitive: false },
+      { text: "spoilers ahead", enabled: true, caseSensitive: false },
+      { text: "ending explained", enabled: true, caseSensitive: false },
+      { text: "post credits", enabled: true, caseSensitive: false },
+      { text: "leaked plot", enabled: true, caseSensitive: false }
     ]
   },
   {
     name: "Video Game Spoilers",
     description: "Video game spoilers and story discussions",
     enabled: false,
+    caseSensitiveDefault: false,
     keywords: [
-      { text: "game spoiler", enabled: true },
-      { text: "final boss", enabled: true },
-      { text: "secret ending", enabled: true },
-      { text: "story spoiler", enabled: true },
-      { text: "plot spoiler", enabled: true },
-      { text: "ending spoiler", enabled: true },
-      { text: "leaked gameplay", enabled: true }
+      { text: "game spoiler", enabled: true, caseSensitive: false },
+      { text: "final boss", enabled: true, caseSensitive: false },
+      { text: "secret ending", enabled: true, caseSensitive: false },
+      { text: "story spoiler", enabled: true, caseSensitive: false },
+      { text: "plot spoiler", enabled: true, caseSensitive: false },
+      { text: "ending spoiler", enabled: true, caseSensitive: false },
+      { text: "leaked gameplay", enabled: true, caseSensitive: false }
     ]
   }
 ];
@@ -109,7 +115,12 @@ function exportPack(pack) {
   const exportData = {
     name: pack.name,
     description: pack.description || '',
-    keywords: pack.keywords.map(kw => ({ text: kw.text, enabled: kw.enabled }))
+    caseSensitiveDefault: pack.caseSensitiveDefault || false,
+    keywords: pack.keywords.map(kw => ({ 
+      text: kw.text, 
+      enabled: kw.enabled,
+      caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
+    }))
   };
   return btoa(JSON.stringify(exportData));
 }
@@ -124,9 +135,11 @@ function importPack(code) {
       name: data.name,
       description: data.description || '',
       enabled: true,
+      caseSensitiveDefault: data.caseSensitiveDefault || false,
       keywords: data.keywords.map(kw => ({
         text: kw.text || '',
-        enabled: kw.enabled !== false
+        enabled: kw.enabled !== false,
+        caseSensitive: kw.caseSensitive !== undefined ? kw.caseSensitive : false
       }))
     };
   } catch (e) {

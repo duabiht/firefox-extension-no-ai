@@ -43,8 +43,27 @@ function getDefaultPacks() {
 }
 
 function migrateOldStorage(data) {
-  // If packs already exist, skip
-  if (data && Array.isArray(data.packs)) return { packs: data.packs, globalPause: !!data.globalPause };
+  // If packs already exist, migrate case sensitivity properties
+  if (data && Array.isArray(data.packs)) {
+    const packs = data.packs.map(pack => {
+      // Add caseSensitiveDefault if missing
+      if (pack.caseSensitiveDefault === undefined) {
+        pack.caseSensitiveDefault = false;
+      }
+      // Add caseSensitive to keywords if missing
+      if (pack.keywords) {
+        pack.keywords = pack.keywords.map(kw => {
+          if (kw.caseSensitive === undefined) {
+            // Set "AI" to case sensitive by default, others to false
+            kw.caseSensitive = kw.text === "AI";
+          }
+          return kw;
+        });
+      }
+      return pack;
+    });
+    return { packs, globalPause: !!data.globalPause };
+  }
   const defaultKeywords = data?.defaultKeywords || [];
   const customKeywords = data?.customKeywords || [];
   if (defaultKeywords.length === 0 && customKeywords.length === 0) {
@@ -55,9 +74,10 @@ function migrateOldStorage(data) {
     name: 'Migrated Keywords',
     enabled: true,
     expanded: true,
+    caseSensitiveDefault: false,
     keywords: [
-      ...defaultKeywords.map(t => ({ text: t, enabled: true, isDefault: true })),
-      ...customKeywords.map(t => ({ text: t, enabled: true, isDefault: false })),
+      ...defaultKeywords.map(t => ({ text: t, enabled: true, isDefault: true, caseSensitive: t === "AI" })),
+      ...customKeywords.map(t => ({ text: t, enabled: true, isDefault: false, caseSensitive: false })),
     ]
   };
   return { packs: [pack], globalPause: false };
@@ -131,6 +151,16 @@ function renderKeywords(keywords) {
   });
 }
 
+// Helper function to toggle pack case sensitivity default
+window.togglePackCaseSensitive = function(packIndex, enabled) {
+  loadState().then(state => {
+    if (state.packs[packIndex]) {
+      state.packs[packIndex].caseSensitiveDefault = enabled;
+      saveState(state);
+    }
+  });
+}
+
 function renderPacks(state) {
   packsContainer.innerHTML = '';
   state.packs.forEach((pack) => {
@@ -178,6 +208,16 @@ function renderPacks(state) {
     const body = document.createElement('div');
     body.className = 'pack-body' + (pack.expanded ? ' open' : '');
 
+    // Pack settings row
+    const settingsRow = document.createElement('div');
+    settingsRow.className = 'pack-settings';
+    settingsRow.innerHTML = `
+      <label>
+        <input type="checkbox" ${pack.caseSensitiveDefault ? 'checked' : ''} onchange="togglePackCaseSensitive(${state.packs.indexOf(pack)}, this.checked)">
+        Default case sensitive for new keywords
+      </label>
+    `;
+
     const list = document.createElement('ul');
     pack.keywords.forEach((kw, idx) => {
       const li = document.createElement('li');
@@ -190,6 +230,15 @@ function renderPacks(state) {
       const span = document.createElement('span');
       span.className = 'kw-text';
       span.textContent = kw.text;
+
+      const caseBtn = document.createElement('button');
+      caseBtn.className = 'case-btn' + (kw.caseSensitive ? ' active' : '');
+      caseBtn.textContent = 'Aa';
+      caseBtn.title = kw.caseSensitive ? 'Case sensitive' : 'Case insensitive';
+      caseBtn.onclick = () => { 
+        kw.caseSensitive = !kw.caseSensitive; 
+        saveState(state).then(() => renderPacks(state)); 
+      };
 
       const edit = document.createElement('button');
       edit.className = 'edit';
@@ -205,6 +254,7 @@ function renderPacks(state) {
 
       li.appendChild(cb);
       li.appendChild(span);
+      li.appendChild(caseBtn);
       li.appendChild(edit);
       li.appendChild(rm);
       list.appendChild(li);
@@ -221,7 +271,12 @@ function renderPacks(state) {
     addBtn.textContent = '+ Add';
     const addKw = () => {
       const val = input.value.trim(); if (!val) return;
-      pack.keywords.push({ text: val, enabled: true, isDefault: false });
+      pack.keywords.push({ 
+        text: val, 
+        enabled: true, 
+        isDefault: false,
+        caseSensitive: pack.caseSensitiveDefault || false
+      });
       input.value = '';
       saveState(state).then(() => renderPacks(state));
     };
@@ -230,6 +285,7 @@ function renderPacks(state) {
     addRow.appendChild(input);
     addRow.appendChild(addBtn);
 
+    body.appendChild(settingsRow);
     body.appendChild(list);
     body.appendChild(addRow);
 
