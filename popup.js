@@ -1,18 +1,6 @@
-const keywordInput = document.getElementById('keywordInput');
-const addBtn = document.getElementById('addBtn');
-const keywordList = document.getElementById('keywordList');
-const defaultKeywordList = document.getElementById('defaultKeywordList');
-const blockedCounter = document.getElementById('blockedCounter');
-const editModal = document.getElementById('editModal');
-const editInput = document.getElementById('editInput');
-const saveEditBtn = document.getElementById('saveEditBtn');
-const cancelEditBtn = document.getElementById('cancelEditBtn');
+// Element references for new pack-based UI
 const packsContainer = document.getElementById('packsContainer');
 const pauseBtn = document.getElementById('pauseBtn');
-
-// Data model for Filter Packs
-// packs: Array<{ id, name, enabled, expanded, keywords: Array<{ text, enabled, isDefault }> }>
-// globalPause: boolean
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
@@ -477,7 +465,10 @@ cancelEditBtn.onclick = hideEditModal;
 
 function updateBlockedCounter() {
   browser.storage.local.get({ blockedCount: 0 }).then(data => {
-    blockedCounter.textContent = `Blocked posts: ${data.blockedCount}`;
+    const el = document.getElementById('blockedCounter');
+    if (el) {
+      el.textContent = `Blocked posts: ${data.blockedCount}`;
+    }
   });
 }
 
@@ -495,30 +486,9 @@ function initPopup() {
       updatePauseUI(newVal);
     };
     // Update blocked counter
-    browser.storage.local.get({ blockedCount: 0 }).then(data => {
-      const el = document.getElementById('blockedCounter');
-      el.textContent = `Blocked posts: ${data.blockedCount}`;
-    });
+    updateBlockedCounter();
   });
 }
 
-// Allow adding keywords with Enter key
-keywordInput.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    addKeyword();
-  }
-});
-
-// Allow saving edits with Enter key
-editInput.addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    saveEditBtn.click();
-  }
-});
-
 // Initial load
-document.addEventListener('DOMContentLoaded', () => {
-  loadKeywords();
-  updateBlockedCounter();
-  initPopup();
-});
+document.addEventListener('DOMContentLoaded', initPopup);

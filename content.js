@@ -264,6 +264,10 @@ async function runWithCustomKeywords() {
   const { paused, keywords } = await getActiveKeywordsFromPacks();
   if (paused) {
     fitLog.info('Global pause enabled: skipping filtering');
+    // Set blocked count to 0 when paused
+    if (browser && browser.storage && browser.storage.local) {
+      browser.storage.local.set({ blockedCount: 0 });
+    }
     return;
   }
   if (keywords.length > 0) {
