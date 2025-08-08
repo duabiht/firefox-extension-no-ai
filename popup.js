@@ -253,12 +253,18 @@ function renderPacks(state) {
     // Pack settings row
     const settingsRow = document.createElement('div');
     settingsRow.className = 'pack-settings';
-    settingsRow.innerHTML = `
-      <label>
-        <input type="checkbox" ${pack.caseSensitiveDefault ? 'checked' : ''} onchange="togglePackCaseSensitive(${state.packs.indexOf(pack)}, this.checked)">
-        Default case sensitive for new keywords
-      </label>
-    `;
+    // Replaced unsafe innerHTML with DOM construction
+    const settingsLabel = document.createElement('label');
+    const settingsCb = document.createElement('input');
+    settingsCb.type = 'checkbox';
+    settingsCb.checked = pack.caseSensitiveDefault;
+    const packIndex = state.packs.indexOf(pack);
+    settingsCb.addEventListener('change', (e) => {
+      window.togglePackCaseSensitive(packIndex, e.target.checked);
+    });
+    settingsLabel.appendChild(settingsCb);
+    settingsLabel.appendChild(document.createTextNode(' Default case sensitive for new keywords'));
+    settingsRow.appendChild(settingsLabel);
 
     const list = document.createElement('ul');
     pack.keywords.forEach((kw, idx) => {
@@ -374,12 +380,25 @@ function exportPack(pack) {
       description: pack.description || '',
       keywords: pack.keywords.map(kw => ({ text: kw.text, enabled: kw.enabled }))
     }));
-    
-    openModal('Export Pack', `
-      <div>Share this code:</div>
-      <textarea class="export-code" readonly>${code}</textarea>
-      <div style="font-size: 12px; color: #666; margin-top: 8px;">Copy and share this code with others to share your filter pack.</div>
-    `, [
+
+    // Build content safely without innerHTML
+    const container = document.createElement('div');
+    const label = document.createElement('div');
+    label.textContent = 'Share this code:';
+    const ta = document.createElement('textarea');
+    ta.className = 'export-code';
+    ta.readOnly = true;
+    ta.value = code;
+    const hint = document.createElement('div');
+    hint.style.fontSize = '12px';
+    hint.style.color = '#666';
+    hint.style.marginTop = '8px';
+    hint.textContent = 'Copy and share this code with others to share your filter pack.';
+    container.appendChild(label);
+    container.appendChild(ta);
+    container.appendChild(hint);
+
+    openModal('Export Pack', container, [
       { text: 'Copy to Clipboard', action: () => { navigator.clipboard.writeText(code); } },
       { text: 'Close', action: () => {} }
     ]);
@@ -415,42 +434,52 @@ function importPack(state) {
 function openModal(title, content, buttons = []) {
   const modal = document.getElementById('dialogModal');
   const modalContent = modal.querySelector('.modal-content');
-  modalContent.innerHTML = `
-    <div style="font-weight:600; margin-bottom:6px;">${title}</div>
-    <div>${content}</div>
-    <div class="modal-actions">
-      ${buttons.map((btn, i) => `<button id="dialogBtn${i}">${btn.text}</button>`).join('')}
-    </div>
-  `;
+  // Clear content safely
+  while (modalContent.firstChild) modalContent.removeChild(modalContent.firstChild);
+
+  const titleDiv = document.createElement('div');
+  titleDiv.style.fontWeight = '600';
+  titleDiv.style.marginBottom = '6px';
+  titleDiv.textContent = title;
+  modalContent.appendChild(titleDiv);
+
+  const contentWrap = document.createElement('div');
+  if (content instanceof HTMLElement) {
+    contentWrap.appendChild(content);
+  } else if (typeof content === 'function') {
+    const node = content();
+    if (node) contentWrap.appendChild(node);
+  } else if (typeof content === 'string') {
+    // Avoid innerHTML: treat as plain text
+    contentWrap.textContent = content;
+  }
+  modalContent.appendChild(contentWrap);
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
   buttons.forEach((btn, i) => {
-    document.getElementById(`dialogBtn${i}`).onclick = () => {
+    const b = document.createElement('button');
+    b.id = `dialogBtn${i}`;
+    b.textContent = btn.text;
+    b.addEventListener('click', () => {
       try { btn.action && btn.action(); } finally { modal.style.display = 'none'; }
-    };
+    });
+    actions.appendChild(b);
   });
+  modalContent.appendChild(actions);
+
   modal.style.display = 'flex';
 }
 
 function showPresets(state) {
   const presets = window.FilteritPacks ? window.FilteritPacks.DEFAULT_PACKS : [];
   if (presets.length === 0) { alert('No presets available'); return; }
-  const list = presets.map(preset => `
-    <div class="preset-item">
-      <div class="preset-info">
-        <div class="preset-name">${preset.name}</div>
-        <div class="preset-desc">${preset.description}</div>
-      </div>
-      <button class="preset-btn" data-name="${preset.name}">Add</button>
-    </div>`).join('');
 
-  // Render modal first
-  openModal('Install Preset Packs', `<div class="preset-list">${list}</div>`, [ { text: 'Close', action: () => {} } ]);
+  // Build list safely without innerHTML
+  const listContainer = document.createElement('div');
+  listContainer.className = 'preset-list';
 
-  // Then attach click handlers (avoid inline onclick due to CSP)
-  const modal = document.getElementById('dialogModal');
-  const btns = modal.querySelectorAll('.preset-btn');
-
-  const install = (name) => {
-    const preset = presets.find(p => p.name === name);
+  const install = (preset) => {
     if (!preset) return;
     const pack = {
       id: uid(),
@@ -467,15 +496,32 @@ function showPresets(state) {
       }))
     };
     state.packs.push(pack);
-    saveState(state).then(() => { renderPacks(state); modal.style.display = 'none'; });
+    saveState(state).then(() => { renderPacks(state); document.getElementById('dialogModal').style.display = 'none'; });
   };
 
-  btns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const name = btn.getAttribute('data-name');
-      install(name);
-    });
+  presets.forEach(preset => {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    const info = document.createElement('div');
+    info.className = 'preset-info';
+    const name = document.createElement('div');
+    name.className = 'preset-name';
+    name.textContent = preset.name;
+    const desc = document.createElement('div');
+    desc.className = 'preset-desc';
+    desc.textContent = preset.description;
+    info.appendChild(name);
+    info.appendChild(desc);
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = 'Add';
+    btn.addEventListener('click', () => install(preset));
+    item.appendChild(info);
+    item.appendChild(btn);
+    listContainer.appendChild(item);
   });
+
+  openModal('Install Preset Packs', listContainer, [ { text: 'Close', action: () => {} } ]);
 }
 
 function updatePauseUI(paused) {
