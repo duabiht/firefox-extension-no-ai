@@ -236,18 +236,47 @@ function filterPosts(allKeywords = []) {
   }
 }
 
-// Load both default and custom keywords from storage and run filter
-function runWithCustomKeywords() {
+async function getActiveKeywordsFromPacks() {
+  try {
+    const data = await (browser?.storage?.local?.get ? browser.storage.local.get({ packs: [], globalPause: false }) : Promise.resolve({ packs: [], globalPause: false }));
+    if (data.globalPause) {
+      fitLog.info('Filtering paused globally');
+      return { paused: true, keywords: [] };
+    }
+    const packs = Array.isArray(data.packs) ? data.packs : [];
+    const keywords = [];
+    for (const pack of packs) {
+      if (!pack.enabled) continue;
+      for (const kw of (pack.keywords || [])) {
+        if (kw.enabled && typeof kw.text === 'string' && kw.text.trim()) keywords.push(kw.text.trim());
+      }
+    }
+    return { paused: false, keywords };
+  } catch (e) {
+    return { paused: false, keywords: [] };
+  }
+}
+
+async function runWithCustomKeywords() {
   if (!window.browser && window.chrome) {
     window.browser = window.chrome; // Compatibility
   }
-  
+  const { paused, keywords } = await getActiveKeywordsFromPacks();
+  if (paused) {
+    fitLog.info('Global pause enabled: skipping filtering');
+    return;
+  }
+  if (keywords.length > 0) {
+    filterPosts(keywords);
+    return;
+  }
+  // Backward compatibility: use old storage if no packs
   if (window.browser && window.browser.storage) {
     window.browser.storage.local.get(['defaultKeywords', 'customKeywords'], (result) => {
       const defaultKeywords = result.defaultKeywords || [];
       const customKeywords = result.customKeywords || [];
       const allKeywords = [...defaultKeywords, ...customKeywords];
-      fitLog.info('Loaded keywords:', { default: defaultKeywords, custom: customKeywords });
+      fitLog.info('Loaded keywords (legacy):', { default: defaultKeywords, custom: customKeywords });
       filterPosts(allKeywords);
     });
   } else {
